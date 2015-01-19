@@ -1,0 +1,11 @@
+{
+  "name": "jsprop",
+  "license": "LGPL",
+  "tags": ["macro","js"],
+  "description": "A build macro to generate support code for native js properties.",
+  "contributors": ["yar3333"],
+  "releasenote": "A build macro to generate support code for native js properties.",
+  "version": "1.0.0",
+  "url": "https://bitbucket.org/yar3333/haxe-jsprop",
+  "dependencies": {}
+}
