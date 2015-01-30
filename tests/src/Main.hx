@@ -1,32 +1,48 @@
 @:build(JsProp.all())
-class Main
+class TestClass
 {
-    //@:property
-    var myPropGetSet(get, set) : Int;
-    function get_myPropGetSet() return 1;
-    function set_myPropGetSet(v) return v;
+    public var r = 5;
+	
+    public var myPropGetSet(get, set) : Int;
+    function get_myPropGetSet() return r;
+    function set_myPropGetSet(v) return r=v;
     
-	/*@:property
-    var myPropDefSet(default, set) : Int;
-    function set_myPropDefSet(v) return v;*/
-	
-	// unsupported
-	//@:property
-    //var myPropGetDef(get, default) : Int;
-    //function get_myPropGetDef() return 2;
+	public var myPropGetNever(get, never) : Int;
+    function get_myPropGetNever() return r;
     
-	//@:property
-    var myPropGetNull(get, null) : Int;
-    function get_myPropGetNull() return 3;
-	
-	function new()
+	public function new()
 	{
-		trace("constructor " + untyped __js__("this.myPropGetSet"));
-	}
-	
-	static function main()
-	{
-		var m = new Main();
-		trace("outer " + untyped __js__("m.myPropGetSet"));
+		trace("TestClass.new: raw this.myPropGetSet = " + untyped __js__("this.myPropGetSet"));
+		trace("TestClass.new: haxe myPropGetSet = " + myPropGetSet);
 	}
 }
+
+typedef TestTypedef =
+{
+    var r : Int;
+	public var myPropGetSet(default, default) : Int;
+    public var myPropGetNever(default, never) : Int;
+}
+
+class Main
+{
+	static function main()
+	{
+		var klass : TestTypedef = new TestClass();
+		
+		trace("Out must be " + klass.r);
+		
+		trace("raw klass.myPropGetSet = " + untyped __js__("klass.myPropGetSet"));
+		trace("raw klass.myPropGetNever = " + untyped __js__("klass.myPropGetNever"));
+		
+		trace("haxe klass.myPropGetSet = " + klass.myPropGetSet);
+		trace("haxe klass.myPropGetNever = " + klass.myPropGetNever);
+		
+		trace("Out must be 10");
+		klass.myPropGetSet = 10;
+		
+		trace("haxe klass.myPropGetSet = " + klass.myPropGetSet);
+		trace("haxe klass.myPropGetNever = " + klass.myPropGetNever);
+	}
+}
+

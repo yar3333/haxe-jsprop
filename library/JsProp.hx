@@ -58,18 +58,21 @@ class JsProp
 						var constructor = getConstructorFunction(fields, hasSuper);
 						var code = macro (untyped Object).defineProperty(this, $v{field.name}, { get:function() return $i{getter}(), set:function(v) $i{setter}(v) });
 						prependCode(constructor, code);
+						field.kind = FieldType.FProp("default", "default", t, e);
 						return true;
 						
 					case [ "get", "never", false ]:
 						var constructor = getConstructorFunction(fields, hasSuper);
 						var code = macro (untyped Object).defineProperty(this, $v{field.name}, { get:function() return $i{getter}() });
 						prependCode(constructor, code);
+						field.kind = FieldType.FProp("default", "never", t, e);
 						return true;
 						
 					case [ "never", "set", false ]:
 						var constructor = getConstructorFunction(fields, hasSuper);
 						var code = macro (untyped Object).defineProperty(this, $v{field.name}, { set:function(v) $i{setter}(v) });
 						prependCode(constructor, code);
+						field.kind = FieldType.FProp("never", "default", t, e);
 						return true;
 						
 					case [ "default"|"null"|"never", "default"|"null"|"never", _ ]:
