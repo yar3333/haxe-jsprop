@@ -124,15 +124,16 @@ class JsProp
 		
 		if (method == null)
 		{
-			var superFuncArgs = getSuperFunctionArgs("new", superClass);
-			if (superFuncArgs != null)
+			var superField = getSuperClassField("new", superClass);
+			if (superField != null)
 			{
+				var superFuncArgs = getClassMethodArgs(superField);
 				var superCall = ECall(macro super, superFuncArgs.map(function(p) return macro $i{p.name}));
-				method = createMethod("new", superFuncArgs, macro:Void, { expr:superCall, pos:Context.currentPos() });
+				method = createMethod(superField.isPublic, "new", superFuncArgs, macro:Void, { expr:superCall, pos:Context.currentPos() } );
 			}
 			else
 			{
-				method = createMethod("new", [], macro:Void, macro {});
+				method = createMethod(false, "new", [], macro:Void, macro {});
 			}
 			fields.push(method);
 		}
@@ -156,16 +157,17 @@ class JsProp
 		
 		if (method == null)
 		{
-			var superFuncArgs = getSuperFunctionArgs("hxUnserialize", superClass);
-			if (superFuncArgs != null)
+			var superField = getSuperClassField("hxUnserialize", superClass);
+			if (superField != null)
 			{
+				var superFuncArgs = getClassMethodArgs(superField);
 				var superCall = ECall(macro super.hxUnserialize, superFuncArgs.map(function(p) return macro $i{p.name}));
-				method = createMethod("hxUnserialize", superFuncArgs, macro:Void, { expr:superCall, pos:Context.currentPos() } );
+				method = createMethod(superField.isPublic, "hxUnserialize", superFuncArgs, macro:Void, { expr:superCall, pos:Context.currentPos() } );
 				method.access.push(Access.AOverride);
 			}
 			else
 			{
-				method = createMethod("hxUnserialize", [ { name:"s", type:(macro:haxe.Unserializer) } ], macro:Void, macro { s.unserializeObject(cast this); } );
+				method = createMethod(false, "hxUnserialize", [ { name:"s", type:(macro:haxe.Unserializer) } ], macro:Void, macro { s.unserializeObject(cast this); } );
 				if (method.meta == null) method.meta = [];
 				method.meta.push({ name:":access", params:[ macro haxe.Unserializer.unserializeObject ], pos:Context.currentPos() });
 			}
@@ -188,7 +190,7 @@ class JsProp
 		for (field in fields) if (field.name == "hxSerialize") return;
 		if (getSuperClassField("hxSerialize", superClass) != null) return;
 		
-		var method = createMethod("hxSerialize", [ { name:"s", type:(macro:haxe.Serializer) } ], macro:Void, macro { s.serializeFields(cast this); } );
+		var method = createMethod(false, "hxSerialize", [ { name:"s", type:(macro:haxe.Serializer) } ], macro:Void, macro { s.serializeFields(cast this); } );
 		if (method.meta == null) method.meta = [];
 		method.meta.push({ name:":access", params:[ macro haxe.Serializer.serializeFields ], pos:Context.currentPos() });
 		fields.push(method);
@@ -204,20 +206,14 @@ class JsProp
 		return false;
 	}
 	
-	static function createMethod(name:String, args:Array<FunctionArg>, ret:Null<ComplexType>, expr:Expr) : Field
+	static function createMethod(isPublic:Bool, name:String, args:Array<FunctionArg>, ret:Null<ComplexType>, expr:Expr) : Field
 	{
 		return
 		{
-			  name : name
-			, access : [ Access.APublic ]
-			, kind : FieldType.FFun
-						({
-							  args : args
-							, ret : ret
-							, expr : expr
-							, params : []
-						})
-			, pos : expr.pos
+			  name: name
+			, access: [ isPublic ? Access.APublic : Access.APrivate ]
+			, kind: FieldType.FFun({ args:args, ret:ret, expr:expr, params:[] })
+			, pos: expr.pos
 		};
 	}
 	
@@ -236,23 +232,20 @@ class JsProp
 		return null;
 	}
 	
-	static function getSuperFunctionArgs(name:String, superClass:SuperClass) : Array<FunctionArg>
+	static function getClassMethodArgs(field:ClassField) : Array<FunctionArg>
 	{
-		var field = getSuperClassField(name, superClass);
-		if (field != null)
+		switch (field.type)
 		{
-			switch (field.type)
-			{
-				case Type.TFun(args, ret): return args.map(toFunctionArg);
-				case Type.TLazy(f):
-					switch (f())
-					{
-						case Type.TFun(args, ret): return args.map(toFunctionArg);
-						case _: Context.fatalError("Expected TFun: " + field.type, field.pos);
-					}
-				case _: Context.fatalError("Expected TFun: " + field.type, field.pos);
-			}
+			case Type.TFun(args, ret): return args.map(toFunctionArg);
+			case Type.TLazy(f):
+				switch (f())
+				{
+					case Type.TFun(args, ret): return args.map(toFunctionArg);
+					case _:
+				}
+			case _:
 		}
+		Context.fatalError("Expected TFun: " + field.type, field.pos);
 		return null;
 	}
 	
