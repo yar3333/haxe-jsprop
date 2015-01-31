@@ -10,22 +10,32 @@ class JsProp
 {
 	public static macro function marked() : Array<Field>
 	{
+		var klass = Context.getLocalClass().get();
+		var fields = Context.getBuildFields();
+		
 		if (Context.defined("js"))
 		{
-			var klass = Context.getLocalClass().get();
-			var fields = Context.getBuildFields();
 			var codes = [];
 			for (field in fields)
 			{
 				if (hasMeta(field, ":property"))
 				{
-					var t = getDefinePropertyCode(field);
+					var t = getDefinePropertyCode(field, true, true);
 					if (t != null) codes.push(t);
 				}
 			}
 			if (codes.length > 0)
 			{
-				addDeinePropertyCode(fields, klass.superClass, codes);
+				addDefinePropertyCode(fields, klass.superClass, codes);
+				return fields;
+			}
+		}
+		else
+		{
+			if (fields.exists(hasMeta.bind(_, ":property")))
+			{
+				ensureHxSerializeFunctionExists(fields, klass.superClass);
+				ensureHxUnserializeFunctionExists(fields, klass.superClass);
 				return fields;
 			}
 		}
@@ -34,31 +44,41 @@ class JsProp
 	
 	public static macro function all() : Array<Field>
 	{
+		var klass = Context.getLocalClass().get();
+		var fields = Context.getBuildFields();
+		
 		if (Context.defined("js"))
 		{
-			var klass = Context.getLocalClass().get();
-			var fields = Context.getBuildFields();
 			var codes = [];
 			for (field in fields)
 			{
 				switch (field.kind)
 				{
 					case FieldType.FProp(_, _, _, _):
-						var t = getDefinePropertyCode(field);
+						var t = getDefinePropertyCode(field, true, false);
 						if (t != null) codes.push(t);
 					case _:
 				}
 			}
 			if (codes.length > 0)
 			{
-				addDeinePropertyCode(fields, klass.superClass, codes);
+				addDefinePropertyCode(fields, klass.superClass, codes);
+				return fields;
+			}
+		}
+		else
+		{
+			if (fields.exists(function(f) return getDefinePropertyCode(f, false, false) != null))
+			{
+				ensureHxSerializeFunctionExists(fields, klass.superClass);
+				ensureHxUnserializeFunctionExists(fields, klass.superClass);
 				return fields;
 			}
 		}
 		return null;
 	}
 	
-	static function addDeinePropertyCode(fields:Array<Field>, superClass:SuperClass, codes:Array<Expr>)
+	static function addDefinePropertyCode(fields:Array<Field>, superClass:SuperClass, codes:Array<Expr>)
 	{
 		var code = macro $b{codes};
 		prependCode(getConstructorFunction(fields, superClass), code);
@@ -66,7 +86,7 @@ class JsProp
 		ensureHxSerializeFunctionExists(fields, superClass);
 	}
 	
-	static function getDefinePropertyCode(field:Field) : Expr
+	static function getDefinePropertyCode(field:Field, fixGetterSetter:Bool, fatalNoSupported:Bool) : Expr
 	{
 		switch (field.kind)
 		{
@@ -78,28 +98,28 @@ class JsProp
 				{
 					case [ "get", "set", false ]:
 						ensureNoExpr(e, field.pos);
-						field.kind = FieldType.FProp("default", "default", t, e);
+						if (fixGetterSetter) field.kind = FieldType.FProp("default", "default", t, e);
 						return macro (untyped Object).defineProperty(this, $v{field.name}, { get:function() return $i{getter}(), set:function(v) $i{setter}(v) });
 						
 					case [ "get", "never", false ]:
 						ensureNoExpr(e, field.pos);
-						field.kind = FieldType.FProp("default", "never", t, e);
+						if (fixGetterSetter) field.kind = FieldType.FProp("default", "never", t, e);
 						return macro (untyped Object).defineProperty(this, $v{field.name}, { get:function() return $i{getter}() });
 						
 					case [ "never", "set", false ]:
 						ensureNoExpr(e, field.pos);
-						field.kind = FieldType.FProp("never", "default", t, e);
+						if (fixGetterSetter) field.kind = FieldType.FProp("never", "default", t, e);
 						return macro (untyped Object).defineProperty(this, $v{field.name}, { set:function(v) $i{setter}(v) });
 						
 					case [ "default"|"null"|"never", "default"|"null"|"never", _ ]:
 						// nothing to do
 						
 					case _:
-						Context.fatalError("JsProp: unsupported get/set combination. Supported: (get,set), (get,never) and (never,set) all without @:isVar.", field.pos);
+						if (fatalNoSupported) Context.fatalError("JsProp: unsupported get/set combination. Supported: (get,set), (get,never) and (never,set) all without @:isVar.", field.pos);
 				}
 				
 			case _:
-				Context.fatalError("JsProp: unsupported type (must be a property).", field.pos);
+				if (fatalNoSupported) Context.fatalError("JsProp: unsupported type (must be a property).", field.pos);
 		}
 		return null;
 	}
@@ -193,6 +213,17 @@ class JsProp
 		var method = createMethod(false, "hxSerialize", [ { name:"s", type:(macro:haxe.Serializer) } ], macro:Void, macro { s.serializeFields(cast this); } );
 		if (method.meta == null) method.meta = [];
 		method.meta.push({ name:":access", params:[ macro haxe.Serializer.serializeFields ], pos:Context.currentPos() });
+		fields.push(method);
+	}
+	
+	static function ensureHxUnserializeFunctionExists(fields:Array<Field>, superClass:SuperClass) : Void
+	{
+		for (field in fields) if (field.name == "hxUnserialize") return;
+		if (getSuperClassField("hxUnserialize", superClass) != null) return;
+		
+		var method = createMethod(false, "hxUnserialize", [ { name:"s", type:(macro:haxe.Unserializer) } ], macro:Void, macro { s.unserializeObject(cast this); } );
+		if (method.meta == null) method.meta = [];
+		method.meta.push({ name:":access", params:[ macro haxe.Unserializer.unserializeObject ], pos:Context.currentPos() });
 		fields.push(method);
 	}
 	
