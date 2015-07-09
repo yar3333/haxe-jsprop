@@ -144,7 +144,7 @@ class JsProp
 		
 		if (method == null)
 		{
-			var superField = getSuperClassField("new", superClass);
+			var superField = superClass != null ? superClass.t.get().findField("new") : null;
 			if (superField != null)
 			{
 				var superFuncArgs = getClassMethodArgs(superField);
@@ -177,7 +177,7 @@ class JsProp
 		
 		if (method == null)
 		{
-			var superField = getSuperClassField("hxUnserialize", superClass);
+			var superField = superClass != null ? superClass.t.get().findField("hxUnserialize") : null;
 			if (superField != null)
 			{
 				var superFuncArgs = getClassMethodArgs(superField);
@@ -208,7 +208,7 @@ class JsProp
 	static function ensureHxSerializeFunctionExists(fields:Array<Field>, superClass:SuperClass) : Void
 	{
 		for (field in fields) if (field.name == "hxSerialize") return;
-		if (getSuperClassField("hxSerialize", superClass) != null) return;
+		if (superClass != null && superClass.t.get().findField("hxSerialize") != null) return;
 		
 		var method = createMethod(false, "hxSerialize", [ { name:"s", type:(macro:haxe.Serializer) } ], macro:Void, macro { s.serializeFields(cast this); } );
 		if (method.meta == null) method.meta = [];
@@ -219,7 +219,7 @@ class JsProp
 	static function ensureHxUnserializeFunctionExists(fields:Array<Field>, superClass:SuperClass) : Void
 	{
 		for (field in fields) if (field.name == "hxUnserialize") return;
-		if (getSuperClassField("hxUnserialize", superClass) != null) return;
+		if (superClass != null && superClass.t.get().findField("hxUnserialize") != null) return;
 		
 		var method = createMethod(false, "hxUnserialize", [ { name:"s", type:(macro:haxe.Unserializer) } ], macro:Void, macro { s.unserializeObject(cast this); } );
 		if (method.meta == null) method.meta = [];
@@ -246,21 +246,6 @@ class JsProp
 			, kind: FieldType.FFun({ args:args, ret:ret, expr:expr, params:[] })
 			, pos: expr.pos
 		};
-	}
-	
-	
-	
-	static function getSuperClassField(name:String, superClass:SuperClass) : ClassField
-	{
-		while (superClass != null)
-		{
-			var c = superClass.t.get();
-			if (name == "new" && c.constructor != null) return c.constructor.get();
-			var fields = c.fields.get().filter(function(f) return f.name == name);
-			if (fields.length > 0) return fields[0];
-			superClass = c.superClass;
-		}
-		return null;
 	}
 	
 	static function getClassMethodArgs(field:ClassField) : Array<FunctionArg>
