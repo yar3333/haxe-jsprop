@@ -5,8 +5,7 @@ Add 'Object.defineProperty()' at the start of constructor.
 Support get/set combinations which not assume to create real variable (get/set, get/never and never/set without @:isVar).
 
 Usage
-```
-#!haxe
+```haxe
 @:build(JsProp.all()) // generate support code for all properties
 class Car
 {
