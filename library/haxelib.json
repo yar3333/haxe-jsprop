@@ -4,8 +4,8 @@
   "tags": ["macro","js"],
   "description": "A build macro to generate support code for native js properties.",
   "contributors": ["yar3333"],
-  "releasenote": "Avoid using haxe's getter and setter methods where possible (clean generated js code). Support serialization & constructors with params.<br>\nKeep method's private/public when override. Support serializztion with none-js platforms.",
-  "version": "2.0.0",
+  "releasenote": "Add README.md.",
+  "version": "2.0.1",
   "url": "https://bitbucket.org/yar3333/haxe-jsprop",
   "dependencies": {}
 }
