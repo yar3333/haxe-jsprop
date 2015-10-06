@@ -10,6 +10,8 @@ class JsProp
 {
 	public static macro function marked() : Array<Field>
 	{
+		if (Context.defined("display")) return null;
+		
 		var klass = Context.getLocalClass().get();
 		var fields = Context.getBuildFields();
 		
@@ -44,6 +46,8 @@ class JsProp
 	
 	public static macro function all() : Array<Field>
 	{
+		if (Context.defined("display")) return null;
+		
 		var klass = Context.getLocalClass().get();
 		var fields = Context.getBuildFields();
 		
@@ -188,7 +192,7 @@ class JsProp
 			}
 			else
 			{
-				method = createMethod(false, "hxUnserialize", [ { name:"s", type:(macro:haxe.Unserializer) } ], macro:Void, macro { s.unserializeObject(cast this); } );
+				method = createMethod(false, "hxUnserialize", [ { name:"s", type:(macro:haxe.Unserializer) } ], macro:Void, macro { (cast s).unserializeObject(this); } );
 				if (method.meta == null) method.meta = [];
 				method.meta.push({ name:":access", params:[ macro haxe.Unserializer.unserializeObject ], pos:Context.currentPos() });
 			}
