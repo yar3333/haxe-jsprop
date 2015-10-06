@@ -67,6 +67,9 @@ class Main
 		trace("serialized = " + s);
 		klass = Unserializer.run(s);
 		test(klass);
+		
+		
+		var c = new C(5);
 	}
 	
 	static function test(klass:TestTypedef)

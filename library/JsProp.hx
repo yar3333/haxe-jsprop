@@ -144,7 +144,7 @@ class JsProp
 		
 		if (method == null)
 		{
-			var superField = superClass != null ? superClass.t.get().findField("new") : null;
+			var superField = findSuperConstructor(superClass);
 			if (superField != null)
 			{
 				var superFuncArgs = getClassMethodArgs(superField);
@@ -155,6 +155,7 @@ class JsProp
 			{
 				method = createMethod(false, "new", [], macro:Void, macro {});
 			}
+			
 			fields.push(method);
 		}
 		
@@ -276,5 +277,12 @@ class JsProp
 		{
 			Context.fatalError("Default value is not supported here.", pos);
 		}
+	}
+	
+	static function findSuperConstructor(superClass:SuperClass) : ClassField
+	{
+		if (superClass == null) return null;
+		if (superClass.t.get().constructor != null) return superClass.t.get().constructor.get();
+		return findSuperConstructor(superClass.t.get().superClass);
 	}
 }
