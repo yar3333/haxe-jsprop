@@ -133,12 +133,31 @@ class JsProp
 		switch (f.expr.expr)
 		{
 			case EBlock(exprs):
-				exprs.unshift({ expr:code.expr, pos:code.pos });
+                final superCallIndex = findSuperCallIndex(exprs);
+                exprs.insert(superCallIndex + 1, { expr:code.expr, pos:code.pos });
 				
 			case _:
-				f.expr = macro { $code; ${f.expr}; };
+                if (f.expr.expr.match(EConst(CIdent("super"))))
+                    f.expr = macro { ${f.expr}; $code; };
+                else
+				    f.expr = macro { $code; ${f.expr}; };
 		}
 	}
+
+    static function findSuperCallIndex(exprs:Array<Expr>) : Int
+    {
+        var i = 0;
+        while (i < exprs.length)
+        {
+            switch (exprs[i].expr)
+            {
+                case ECall(e, params) if (e.expr.match(EConst(CIdent("super")))): return i;
+                case _:
+            }
+            i++;
+        }
+        return -1;
+    }
 	
 	static function getConstructorFunction(fields:Array<Field>, superClass:SuperClass) : Function
 	{
